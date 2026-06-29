@@ -59,10 +59,9 @@ describe("Access Route Scoring Engine", () => {
     // Base: 5.0
     // waitlist only (-2.0)
     // enterprise only (-2.0)
-    // simple CLI (+1.0)
-    // Expected: 2.0
+    // Expected: 1.0
     const score = calculateAccessRouteScore(routes);
-    expect(score).toBe(2.0);
+    expect(score).toBe(1.0);
   });
 
   it("should penalize local model if it is too large for realistic local use", () => {
@@ -92,6 +91,21 @@ describe("Access Route Scoring Engine", () => {
     const score = calculateAccessRouteScore(routes);
     expect(score).toBe(4.5);
   });
+
+  it("should penalize unverified or unknown access routes", () => {
+    const routes: AccessRoute[] = [
+      {
+        provider: "Unverified API",
+        accessType: "unknown",
+        setupDifficulty: "unknown",
+        requiresApiKey: true,
+        notes: "Keyword match; verify docs."
+      }
+    ];
+
+    const score = calculateAccessRouteScore(routes);
+    expect(score).toBeLessThan(5.0);
+  });
 });
 
 describe("Workspace Fit Scoring Heuristic", () => {
@@ -112,7 +126,8 @@ describe("Workspace Fit Scoring Heuristic", () => {
     
     // Generic fit should reward MCP, agent, workflow
     expect(scored.workspaceFit).toBeGreaterThan(7.0);
-    expect(scored.score).toBeGreaterThan(6.0);
+    expect(scored.score).toBeGreaterThan(5.0);
+    expect(scored.risk).toContain("manual verification");
   });
 
   it("should adjust fit when runtime context matches", async () => {
@@ -135,6 +150,23 @@ describe("Workspace Fit Scoring Heuristic", () => {
     expect(scoredWithContext.contextUsed).toBe(true);
     expect(scoredWithContext.contextSummary?.toLowerCase()).toContain("typescript");
     expect(scoredWithContext.workspaceFit).toBeGreaterThan(5.0);
+  });
+
+  it("should generate a short TLDR for report cards", async () => {
+    const item: SignalItem = {
+      id: "test-tldr",
+      name: "Hand Detection",
+      description: "A TensorFlow SSD hand detection reference project. It includes setup scripts and model training notes.",
+      type: "Repository",
+      source: "GitHub",
+      url: "https://github.com/example/hand-detection",
+      tags: ["tensorflow", "computer-vision"],
+      workspaceFit: 0,
+      score: 0
+    };
+
+    const scored = await scoreSignal(item, DEFAULT_TEST_CONFIG);
+    expect(scored.tldr).toBe("Hand Detection: A TensorFlow SSD hand detection reference project.");
   });
 
   it("should calculate community hype correctly based on engagement parameters", async () => {

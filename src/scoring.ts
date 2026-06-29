@@ -20,8 +20,8 @@ export function calculateAccessRouteScore(routes: AccessRoute[]): number {
   const hasOpenAICompatible = routes.some(r => r.openAICompatible);
   const hasOpenRouter = routes.some(r => r.provider.toLowerCase().includes("openrouter"));
   const hasLocalOrOpenWeights = routes.some(r => r.accessType === "local" || r.accessType === "open_weights");
-  const hasNoCreditCard = routes.some(r => !r.requiresCreditCard);
-  const hasAgentUsable = routes.some(r => r.agentUsable);
+  const hasNoCreditCard = routes.some(r => r.requiresCreditCard === false);
+  const hasAgentUsable = routes.some(r => r.agentUsable === true);
   const hasEasySetup = routes.some(r => r.setupDifficulty === "easy");
 
   // Rewards (+8.0 possible)
@@ -35,6 +35,9 @@ export function calculateAccessRouteScore(routes: AccessRoute[]): number {
   // simple CLI/API integration (e.g. Ollama, OpenRouter, or official API)
   if (routes.some(r => ["ollama", "openrouter", "openai"].includes(r.provider.toLowerCase()) || r.provider.toLowerCase().includes("api"))) {
     score += 1.0;
+  }
+  if (routes.some(r => r.provider.toLowerCase().includes("unverified") || r.accessType === "unknown")) {
+    score -= 2.0;
   }
 
   // Penalties
@@ -117,6 +120,25 @@ function calculateContextWorkspaceFitHeuristic(item: SignalItem, context: string
     : "Generic workspace fit based on workflow utility.";
 
   return { fit, summary };
+}
+
+function generateTldr(item: SignalItem): string {
+  if (item.tldr && item.tldr.trim()) {
+    return item.tldr.trim();
+  }
+
+  const description = item.description.replace(/\s+/g, " ").trim();
+  const firstSentence = description.match(/^(.+?[.!?])\s/)?.[1] || description;
+  const readableName = item.name
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const summary = firstSentence.toLowerCase().startsWith(readableName.toLowerCase())
+    ? firstSentence
+    : `${readableName}: ${firstSentence}`;
+  const clean = summary.length > 160 ? `${summary.slice(0, 157).trim()}...` : summary;
+  return clean || `${readableName} is a ${item.type.toLowerCase()} signal from ${item.source}.`;
 }
 
 /**
@@ -285,6 +307,7 @@ export async function scoreSignal(
   score = Math.round(score * 10) / 10; // Round to 1 decimal
 
   // Default explanations if LLM didn't provide them
+  const tldr = generateTldr(item);
   const whyItMatters = item.whyItMatters || 
     (item.description.length > 80 ? item.description.substring(0, 80) + "..." : item.description);
 
@@ -295,7 +318,7 @@ export async function scoreSignal(
     } else if (bestAccessRoute?.provider.toLowerCase().includes("ollama")) {
       nextAction = "Run `ollama run <model>` to download and test the model interface locally.";
     } else {
-      nextAction = "Review setup documentation and verify API key settings in your local environment.";
+      nextAction = "Open the source link and verify setup docs, pricing, and API availability before adopting.";
     }
   }
 
@@ -308,7 +331,7 @@ export async function scoreSignal(
     } else if (bestAccessRoute?.accessType === "open_weights") {
       risk = "Requires sufficient local GPU memory (VRAM) to run efficiently.";
     } else {
-      risk = "Pricing model or rate limits are subject to change.";
+      risk = "Access route is inferred from source metadata and needs manual verification.";
     }
   }
 
@@ -320,9 +343,11 @@ export async function scoreSignal(
     score,
     contextUsed,
     contextSummary,
+    tldr,
     whyItMatters,
     nextAction,
     risk,
-    communityHype
+    communityHype,
+    evidenceLevel: item.evidenceLevel || (config.llm?.enabled ? "llm" : "heuristic")
   };
 }

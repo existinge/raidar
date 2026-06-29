@@ -84,7 +84,7 @@ export function extractAccessRoutesRuleBased(item: SignalItem): {
 
   // 4. Official Provider / API
   const providers = ["openai", "anthropic", "gemini", "google", "meta", "cohere", "mistral", "deepseek", "qwen", "glm"];
-  let matchedProvider = "Official API";
+  let matchedProvider: string | undefined;
   for (const p of providers) {
     if (text.includes(p)) {
       matchedProvider = p.charAt(0).toUpperCase() + p.slice(1) + " API";
@@ -95,15 +95,17 @@ export function extractAccessRoutesRuleBased(item: SignalItem): {
   const isFree = text.includes("free api") || text.includes("free tier") || text.includes("free credits");
   const isTrial = text.includes("free trial");
   
-  routes.push({
-    provider: matchedProvider,
-    accessType: isFree ? "free_tier" : (isTrial ? "free_trial" : "paid"),
-    requiresApiKey: true,
-    requiresCreditCard: text.includes("credit card required") || text.includes("card required"),
-    setupDifficulty: "easy",
-    agentUsable: true,
-    notes: `Official provider endpoint for ${item.name}.`
-  });
+  if (matchedProvider || text.includes(" api") || isFree || isTrial) {
+    routes.push({
+      provider: matchedProvider || "Unverified API",
+      accessType: matchedProvider ? (isFree ? "free_tier" : (isTrial ? "free_trial" : "paid")) : "unknown",
+      requiresApiKey: true,
+      requiresCreditCard: text.includes("credit card required") || text.includes("card required"),
+      setupDifficulty: matchedProvider ? "easy" : "unknown",
+      agentUsable: !!matchedProvider,
+      notes: matchedProvider ? "Inferred from source text." : "Keyword match; verify docs."
+    });
+  }
 
   // Pick the best access route based on hierarchy: Free/Tier > Trial > Local > Paid
   let best = routes[0];
@@ -128,7 +130,7 @@ export function extractAccessRoutesRuleBased(item: SignalItem): {
   return {
     accessRoutes: routes,
     bestAccessRoute: best || {
-      provider: "Official API",
+      provider: "Unverified Access",
       accessType: "unknown",
       setupDifficulty: "unknown",
       notes: "Access routes details are not clearly visible."

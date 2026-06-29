@@ -47,6 +47,9 @@ npm run dev -- scan --context "local-first helpdesk automation app using TypeScr
 
 # Context file scanning
 npm run dev -- scan --context-file ./workspace-context.md
+
+# Include raw context in generated report files only when you explicitly want it
+npm run dev -- scan --context-file ./workspace-context.md --include-context
 ```
 
 ### 2. View Top Recommendations
@@ -131,4 +134,8 @@ All configuration is stored in `radar.config.json`. The default configuration ge
 }
 ```
 
-- **Runtime context** passed via `--context` or `--context-file` is parsed in-memory at execution time to score items but is **never stored** in `radar.config.json`, keeping your project workspace completely private.
+- **Runtime context** passed via `--context` or `--context-file` is parsed in-memory at execution time to score items but is **never stored** in `radar.config.json`.
+- Generated report files omit raw runtime context by default. Pass `--include-context` when you explicitly want the full context embedded in Markdown/HTML outputs.
+- Source APIs returning no results are skipped rather than replaced with sample findings. Manual seed items should live in `manualItems` so they are clearly marked as manual evidence.
+- Access routes from non-LLM mode are heuristic. rAIdar labels evidence and penalizes unknown/unverified access so reports do not overstate “usable today” status.
+- Each finding includes a generated `TLDR` line above the longer source description so dense posts can be scanned quickly.

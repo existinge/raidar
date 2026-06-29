@@ -39,11 +39,13 @@ export type SignalItem = {
   bestAccessRoute?: AccessRoute;
   contextUsed?: boolean;
   contextSummary?: string;
+  tldr?: string;
   whyItMatters?: string;
   nextAction?: string;
   risk?: string;
   image?: string;
   communityHype?: CommunityHype;
+  evidenceLevel?: "source" | "heuristic" | "llm" | "manual";
 };
 
 export interface WorkspaceContext {

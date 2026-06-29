@@ -26,12 +26,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/username/raidar.git"
+    "url": "git+https://github.com/existinge/raidar.git"
   },
   "bugs": {
-    "url": "https://github.com/username/raidar/issues"
+    "url": "https://github.com/existinge/raidar/issues"
   },
-  "homepage": "https://github.com/username/raidar#readme",
+  "homepage": "https://github.com/existinge/raidar#readme",
   "files": [
     "dist",
     "src",

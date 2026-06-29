@@ -85,8 +85,10 @@ export function generateMarkdownBrief(
     itemMd += `Type: ${item.type}  \n`;
     itemMd += `Access: ${item.bestAccessRoute?.accessType.replace("_", " ") || "unknown"}  \n`;
     itemMd += `Score: ${item.score}/10  \n`;
+    itemMd += `Evidence: ${item.evidenceLevel || "heuristic"}  \n`;
     itemMd += `Source: ${item.source} (${item.url})  \n\n`;
     
+    itemMd += `TLDR: ${item.tldr || item.whyItMatters || item.description}  \n`;
     itemMd += `Why it matters: ${item.whyItMatters || item.description}  \n`;
     
     if (item.contextUsed && item.contextSummary) {
@@ -666,6 +668,25 @@ export function generateHtmlFeed(
       opacity: 0.95;
     }
 
+    .card-tldr {
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: var(--text-main);
+      background: var(--tab-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 0.55rem 0.7rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .card-tldr strong {
+      color: var(--accent-primary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 0.35rem;
+    }
+
     /* Highlights Section */
     .highlight-section {
       background: var(--tab-bg);
@@ -1196,7 +1217,7 @@ export function generateHtmlFeed(
                 <div class="card-header">
                   <div class="card-meta">
                     <span class="source-tag">
-                      📡 \u00A0 \${item.source} ( <a href="\${item.url}" target="_blank">\${domain}</a> )
+                      📡 \u00A0 \${item.source} · \${item.evidenceLevel || 'heuristic'} ( <a href="\${item.url}" target="_blank">\${domain}</a> )
                     </span>
                     <h3 class="card-title">\${item.name}</h3>
                   </div>
@@ -1207,6 +1228,7 @@ export function generateHtmlFeed(
                 </div>
 
                 <div class="tags">\${tagsHtml}</div>
+                <p class="card-tldr"><strong>TLDR</strong> \${item.tldr || item.whyItMatters || item.description}</p>
                 <p class="card-description">\${item.description}</p>
               </div>
               \${imageHtml}

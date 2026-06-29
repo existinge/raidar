@@ -17,6 +17,7 @@ function mapGitHubRepo(repo: any): SignalItem {
       ...(repo.language ? [repo.language.toLowerCase()] : []),
       ...repo.topics || []
     ],
+    evidenceLevel: "source",
     workspaceFit: 0,
     score: 0
   };
@@ -34,6 +35,7 @@ function mapHNStory(story: any): SignalItem {
     source: "HackerNews",
     url: story.url || `https://news.ycombinator.com/item?id=${story.objectID}`,
     tags: ["hn", "discussion"],
+    evidenceLevel: "source",
     workspaceFit: 0,
     score: 0
   };
@@ -111,10 +113,11 @@ async function scanGitHub(config: RadarConfig, expandedKeywords: string[]): Prom
   const broadTopics = ["mcp-server", "ai-agent", "claude-code", "cursor-rules", "llm-cli"];
   
   console.log(`Scanning GitHub for custom query terms and broad topics...`);
+  const perKeyword = Math.max(1, Math.min(config.limits.githubPerKeyword || 3, 20));
 
   for (const keyword of keywords.slice(0, 8)) {
     try {
-      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(keyword)}&sort=stars&order=desc&per_page=3`;
+      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(keyword)}&sort=stars&order=desc&per_page=${perKeyword}`;
       const response = await axios.get(url, {
         headers: { "User-Agent": "rAIdar-Access-Scout-CLI", Accept: "application/vnd.github.v3+json" },
         timeout: 5000
@@ -127,7 +130,7 @@ async function scanGitHub(config: RadarConfig, expandedKeywords: string[]): Prom
 
   for (const topic of broadTopics) {
     try {
-      const url = `https://api.github.com/search/repositories?q=topic:${topic}&sort=updated&order=desc&per_page=4`;
+      const url = `https://api.github.com/search/repositories?q=topic:${topic}&sort=updated&order=desc&per_page=${perKeyword}`;
       const response = await axios.get(url, {
         headers: { "User-Agent": "rAIdar-Access-Scout-CLI", Accept: "application/vnd.github.v3+json" },
         timeout: 5000
@@ -140,42 +143,7 @@ async function scanGitHub(config: RadarConfig, expandedKeywords: string[]): Prom
 
   // Fallback mock list if we hit rate limits and got no items
   if (items.length === 0) {
-    console.log("GitHub rate limits hit or offline. Loading rich mock workflow tools...");
-    items.push(
-      {
-        id: "github-mock-qwythos",
-        name: "Qwythos-9B-GGUF",
-        description: "Quantized, uncensored Qwen3.5 reasoning model with 1M context. Perfect for local coding agents.",
-        type: "Local Model",
-        source: "GitHub Fallback",
-        url: "https://github.com/BrianRoemmele/Qwythos-9B-GGUF",
-        tags: ["gguf", "qwen3.5", "uncensored", "1m-context", "local-first"],
-        workspaceFit: 0,
-        score: 0
-      },
-      {
-        id: "github-mock-claude-lazy",
-        name: "claude-lazy-senior-skill",
-        description: "Highly optimized prompt skill for Claude Code that writes 54% less code, reducing costs by 20% and improving agent execution speed.",
-        type: "Claude Code Skill",
-        source: "GitHub Fallback",
-        url: "https://github.com/zrebroia/claude-lazy-senior-skill",
-        tags: ["claude-code", "mcp-skill", "productivity", "agent-addon"],
-        workspaceFit: 0,
-        score: 0
-      },
-      {
-        id: "github-mock-mcp-postgres",
-        name: "postgresql-mcp-inspector",
-        description: "Postgres database dashboard MCP server. Inspect schemas, query statistics, and execute safe queries.",
-        type: "MCP Server",
-        source: "GitHub Fallback",
-        url: "https://github.com/modelcontextprotocol/postgresql-mcp-inspector",
-        tags: ["mcp", "postgres", "database-addon"],
-        workspaceFit: 0,
-        score: 0
-      }
-    );
+    console.warn("GitHub returned no items. Skipping GitHub rather than emitting sample data.");
   }
 
   return items;
@@ -189,12 +157,13 @@ async function scanHackerNews(config: RadarConfig, expandedKeywords: string[]): 
 
   const items: SignalItem[] = [];
   const keywords = [...expandedKeywords, "mcp server", "local llm", "free api key"];
+  const perKeyword = Math.max(1, Math.min(config.limits.hackerNewsPerKeyword || 3, 20));
   
   console.log("Scanning HackerNews feeds (Show HN, Front Page, and queries)...");
 
   for (const kw of keywords.slice(0, 5)) {
     try {
-      const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(kw)}&tags=story&hitsPerPage=3`;
+      const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(kw)}&tags=story&hitsPerPage=${perKeyword}`;
       const response = await axios.get(url, { timeout: 5000 });
       if (response.data && Array.isArray(response.data.hits)) {
         response.data.hits.forEach((story: any) => items.push(mapHNStory(story)));
@@ -307,6 +276,7 @@ async function scanX(config: RadarConfig, expandedKeywords: string[]): Promise<S
           source: "X/Twitter",
           url: tweetUrl,
           tags: ["x-post", "hype", keyword.toLowerCase().replace(/\s+/g, "-")],
+          evidenceLevel: "source",
           workspaceFit: 0,
           score: 0
         });
@@ -361,7 +331,7 @@ export async function scanAll(config: RadarConfig, contextText?: string): Promis
   if (config.sources.manual && Array.isArray(config.manualItems)) {
     console.log(`Loading ${config.manualItems.length} manual items from config...`);
     for (const item of config.manualItems) {
-      allItems.push({ ...item, workspaceFit: 0, score: 0 });
+      allItems.push({ ...item, evidenceLevel: item.evidenceLevel || "manual", workspaceFit: 0, score: 0 });
     }
   }
 
@@ -378,6 +348,11 @@ export async function scanAll(config: RadarConfig, contextText?: string): Promis
   const uniqueItems: SignalItem[] = [];
 
   for (const item of allItems) {
+    const isSample = item.source.toLowerCase().includes("fallback") || item.id.startsWith("x-post-");
+    if (isSample) {
+      continue;
+    }
+
     if (!item.url || seenUrls.has(item.url.toLowerCase())) {
       continue;
     }

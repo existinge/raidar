@@ -65,6 +65,7 @@ program
   .description("Scan active sources (GitHub, HackerNews, manual items) for AI workflow signals")
   .option("-c, --context <text>", "Provide runtime context text for scoring")
   .option("-f, --context-file <path>", "Path to workspace context file (e.g. ./.agent/workspace-summary.md)")
+  .option("--include-context", "Include raw runtime context in generated report files", false)
   .option("-o, --output <path>", "File to output the Markdown brief to", "radar-brief.md")
   .option("-html, --html-output <path>", "File to output the HTML feed to", "radar-feed.html")
   .action(async (options) => {
@@ -84,10 +85,11 @@ program
     const scoredItems = await scoreCandidatesInBatches(candidates, config, context);
 
     // Format output Markdown
-    const md = generateMarkdownBrief(scoredItems, config, context);
+    const reportContext = options.includeContext ? context : undefined;
+    const md = generateMarkdownBrief(scoredItems, config, reportContext);
     
     // Format output HTML Feed
-    const html = generateHtmlFeed(scoredItems, config, context);
+    const html = generateHtmlFeed(scoredItems, config, reportContext);
     
     // Write Markdown file
     const outputPath = path.resolve(options.output);
