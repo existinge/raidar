@@ -11,6 +11,7 @@ radar.config.json
 # Scan reports & Output Briefs
 radar-brief.md
 radar-expansive-brief.md
+radar-feed.html
 
 # Development / Scratch folder
 scratch/

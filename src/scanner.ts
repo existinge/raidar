@@ -1,5 +1,6 @@
 import axios from "axios";
 import { RadarConfig, SignalItem } from "./types.js";
+import { validateSignalItem } from "./contracts.js";
 
 /**
  * Normalizes GitHub repo API response to SignalItem
@@ -380,6 +381,13 @@ export async function scanAll(config: RadarConfig, contextText?: string): Promis
     if (!item.url || seenUrls.has(item.url.toLowerCase())) {
       continue;
     }
+    
+    const validation = validateSignalItem(item);
+    if (!validation.valid) {
+      console.warn(`[Contract Violation] Skipping item "${item.name || item.id}" due to validation errors:`, validation.errors);
+      continue;
+    }
+
     seenUrls.add(item.url.toLowerCase());
     uniqueItems.push(item);
   }

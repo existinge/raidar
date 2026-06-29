@@ -6,7 +6,7 @@ import * as path from "path";
 import { loadConfig } from "./config.js";
 import { scanAll } from "./scanner.js";
 import { scoreSignal } from "./scoring.js";
-import { generateMarkdownBrief } from "./output.js";
+import { generateMarkdownBrief, generateHtmlFeed } from "./output.js";
 
 const program = new Command();
 
@@ -66,6 +66,7 @@ program
   .option("-c, --context <text>", "Provide runtime context text for scoring")
   .option("-f, --context-file <path>", "Path to workspace context file (e.g. ./.agent/workspace-summary.md)")
   .option("-o, --output <path>", "File to output the Markdown brief to", "radar-brief.md")
+  .option("-html, --html-output <path>", "File to output the HTML feed to", "radar-feed.html")
   .action(async (options) => {
     console.log("rAIdar Access Scout: Beginning scan...");
     
@@ -82,26 +83,39 @@ program
     // Score candidates in parallel batches
     const scoredItems = await scoreCandidatesInBatches(candidates, config, context);
 
-    // Format output
+    // Format output Markdown
     const md = generateMarkdownBrief(scoredItems, config, context);
     
-    // Write output file
+    // Format output HTML Feed
+    const html = generateHtmlFeed(scoredItems, config, context);
+    
+    // Write Markdown file
     const outputPath = path.resolve(options.output);
     try {
       fs.writeFileSync(outputPath, md, "utf-8");
-      console.log(`\nScan complete! Brief saved to ${outputPath}`);
-      console.log("\n--- Brief Summary ---");
-      // Print top 3 recommendations to stdout
-      const top3 = scoredItems.sort((a,b) => b.score - a.score).slice(0, 3);
-      if (top3.length > 0) {
-        top3.forEach((item, index) => {
-          console.log(`${index + 1}. [Score: ${item.score}/10] ${item.name} (${item.bestAccessRoute?.provider} - ${item.bestAccessRoute?.accessType})`);
-        });
-      } else {
-        console.log("No signal items found matching thresholds.");
-      }
+      console.log(`Scan brief saved to ${outputPath}`);
     } catch (err: any) {
       console.error(`Failed to write markdown brief: ${err.message}`);
+    }
+
+    // Write HTML file
+    const htmlOutputPath = path.resolve(options.htmlOutput);
+    try {
+      fs.writeFileSync(htmlOutputPath, html, "utf-8");
+      console.log(`Scan HTML feed saved to ${htmlOutputPath}`);
+    } catch (err: any) {
+      console.error(`Failed to write HTML feed: ${err.message}`);
+    }
+
+    console.log("\n--- Brief Summary ---");
+    // Print top 3 recommendations to stdout
+    const top3 = scoredItems.sort((a,b) => b.score - a.score).slice(0, 3);
+    if (top3.length > 0) {
+      top3.forEach((item, index) => {
+        console.log(`${index + 1}. [Score: ${item.score}/10] ${item.name} (${item.bestAccessRoute?.provider} - ${item.bestAccessRoute?.accessType})`);
+      });
+    } else {
+      console.log("No signal items found matching thresholds.");
     }
   });
 
