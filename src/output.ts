@@ -660,12 +660,35 @@ export function generateHtmlFeed(
       border-radius: 4px;
     }
 
-    .card-description {
+    .source-excerpt {
       font-size: 0.85rem;
       line-height: 1.5;
       color: var(--text-main);
       margin-bottom: 0.75rem;
       opacity: 0.95;
+    }
+
+    .source-excerpt summary {
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      list-style-position: inside;
+      outline: none;
+      user-select: none;
+    }
+
+    .source-excerpt summary:hover {
+      color: var(--accent-secondary);
+    }
+
+    .card-description {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      margin-top: 0.45rem;
+      max-height: 7.25rem;
+      overflow: hidden;
     }
 
     .card-tldr {
@@ -1087,6 +1110,12 @@ export function generateHtmlFeed(
       return type.replace('_', ' ');
     }
 
+    function compactSourceText(text, maxLength = 520) {
+      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      if (clean.length <= maxLength) return clean;
+      return clean.slice(0, maxLength - 1).trimEnd() + '…';
+    }
+
     function getHypeIcon(level) {
       switch (level) {
         case 'mainstream': return '💎';
@@ -1229,7 +1258,10 @@ export function generateHtmlFeed(
 
                 <div class="tags">\${tagsHtml}</div>
                 <p class="card-tldr"><strong>TLDR</strong> \${item.tldr || item.whyItMatters || item.description}</p>
-                <p class="card-description">\${item.description}</p>
+                <details class="source-excerpt">
+                  <summary>Source excerpt</summary>
+                  <p class="card-description">\${compactSourceText(item.description)}</p>
+                </details>
               </div>
               \${imageHtml}
             </div>

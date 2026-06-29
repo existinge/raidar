@@ -139,3 +139,4 @@ All configuration is stored in `radar.config.json`. The default configuration ge
 - Source APIs returning no results are skipped rather than replaced with sample findings. Manual seed items should live in `manualItems` so they are clearly marked as manual evidence.
 - Access routes from non-LLM mode are heuristic. rAIdar labels evidence and penalizes unknown/unverified access so reports do not overstate “usable today” status.
 - Each finding includes a generated `TLDR` line above the longer source description so dense posts can be scanned quickly.
+- Long source text is collapsed into a short `Source excerpt` disclosure in the HTML feed so noisy posts do not overwhelm the card.
