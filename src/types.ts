@@ -18,6 +18,13 @@ export type AccessRoute = {
   notes?: string;
 };
 
+export interface CommunityHype {
+  score: number; // 0 to 10 scale of community interest/hype
+  level: "niche" | "growing" | "surging" | "mainstream";
+  sentiment: "skeptical" | "neutral" | "positive" | "highly_excited";
+  breakdown: string; // A short sentence explaining the tone
+}
+
 export type SignalItem = {
   id: string;
   name: string;
@@ -35,6 +42,8 @@ export type SignalItem = {
   whyItMatters?: string;
   nextAction?: string;
   risk?: string;
+  image?: string;
+  communityHype?: CommunityHype;
 };
 
 export interface WorkspaceContext {

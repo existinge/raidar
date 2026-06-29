@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
-import { RadarConfig, SignalItem, AccessRoute } from "./types.js";
+import { RadarConfig, SignalItem, AccessRoute, CommunityHype } from "./types.js";
 
 dotenv.config();
 
@@ -148,6 +148,7 @@ export async function evaluateSignalWithLLM(
   bestAccessRoute: AccessRoute;
   workspaceFit: number;
   contextSummary?: string;
+  communityHype?: CommunityHype;
 }> {
   // If LLM is disabled, fall back immediately to rule-based
   if (!config.llm || !config.llm.enabled) {
@@ -181,7 +182,7 @@ export async function evaluateSignalWithLLM(
   }
 
   const prompt = `
-You are rAIdar's Access Scout AI. Analyze the following tool/model finding and extract access routes. Keep "notes" and "contextSummary" extremely brief (under 8 words) to optimize speed.
+You are rAIdar's Access Scout AI. Analyze the following tool/model finding, extract access routes, and gauge its community hype & adoption score/sentiment. Keep notes/breakdowns very brief (<8 words).
 
 Finding Name: ${item.name}
 Finding Description: ${item.description}
@@ -218,7 +219,13 @@ Analyze and respond in JSON with EXACTLY the following format:
      "notes": "string (extremely brief, <8 words)"
   },
   "workspaceFit": number (0 to 10),
-  "contextSummary": "string (extremely brief, <8 words)"
+  "contextSummary": "string (extremely brief, <8 words)",
+  "communityHype": {
+     "score": number (0 to 10 scale of community adoption/hype),
+     "level": "niche" | "growing" | "surging" | "mainstream",
+     "sentiment": "skeptical" | "neutral" | "positive" | "highly_excited",
+     "breakdown": "string (brief summary of tone/adoption, <8 words)"
+  }
 }
 `;
 
@@ -250,7 +257,8 @@ Analyze and respond in JSON with EXACTLY the following format:
         accessRoutes: result.accessRoutes,
         bestAccessRoute: result.bestAccessRoute || result.accessRoutes[0],
         workspaceFit: typeof result.workspaceFit === "number" ? result.workspaceFit : 5.0,
-        contextSummary: result.contextSummary
+        contextSummary: result.contextSummary,
+        communityHype: result.communityHype
       };
     }
   } catch (error: any) {

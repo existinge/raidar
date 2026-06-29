@@ -136,4 +136,24 @@ describe("Workspace Fit Scoring Heuristic", () => {
     expect(scoredWithContext.contextSummary?.toLowerCase()).toContain("typescript");
     expect(scoredWithContext.workspaceFit).toBeGreaterThan(5.0);
   });
+
+  it("should calculate community hype correctly based on engagement parameters", async () => {
+    const item: SignalItem = {
+      id: "test-hn-hype",
+      name: "Show HN: Local Agent Studio",
+      description: "Discussion on Hacker News. Points: 250, Comments: 80",
+      type: "Show HN Project",
+      source: "HackerNews",
+      url: "https://news.ycombinator.com/item?id=mock-studio",
+      tags: ["hn", "local-llm"],
+      workspaceFit: 0,
+      score: 0
+    };
+
+    const scored = await scoreSignal(item, DEFAULT_TEST_CONFIG);
+    expect(scored.communityHype).toBeDefined();
+    expect(scored.communityHype?.score).toBeGreaterThan(7.0);
+    expect(scored.communityHype?.level).toBe("mainstream");
+    expect(scored.communityHype?.breakdown).toContain("HackerNews");
+  });
 });
