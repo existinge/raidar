@@ -1,0 +1,20 @@
+# Dependency directories
+node_modules/
+
+# Build output
+dist/
+
+# Local/Private Configuration & Environment
+.env
+radar.config.json
+
+# Scan reports & Output Briefs
+radar-brief.md
+radar-expansive-brief.md
+
+# Development / Scratch folder
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
